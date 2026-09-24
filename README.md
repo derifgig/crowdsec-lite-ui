@@ -18,7 +18,7 @@ A minimal self-hosted web dashboard for [CrowdSec](https://crowdsec.net).
 # docker-compose.yml
 services:
   crowdsec-lite-ui:
-    image: derifgig/crowdsec-lite-ui:latest
+    image: derifgjg/crowdsec-lite-ui:latest
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -74,4 +74,4 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Builds `linux/amd64` and `linux/arm64` images and pushes to `derifgig/crowdsec-lite-ui`.
+Builds `linux/amd64` and `linux/arm64` images and pushes to `derifgjg/crowdsec-lite-ui`.
