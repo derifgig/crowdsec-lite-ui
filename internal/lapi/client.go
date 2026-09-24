@@ -216,15 +216,15 @@ type alertForDecisions struct {
 	Decisions []json.RawMessage `json:"decisions"`
 }
 
-// FetchDecisions extracts decisions embedded in alerts via the watcher JWT endpoint.
-// GET /v1/decisions requires a bouncer X-Api-Key which we don't have;
-// decisions are available inside every alert object returned by GET /v1/alerts.
+// FetchDecisions extracts active decisions embedded in alerts via the watcher JWT endpoint.
+// GET /v1/decisions requires a bouncer X-Api-Key; decisions are available inside
+// every alert object returned by GET /v1/alerts. We filter by the decision's
+// "until" field to return only currently active (non-expired) decisions.
 func (c *Client) FetchDecisions(ip string) ([]json.RawMessage, error) {
 	params := url.Values{}
 	params.Set("limit", "0")
 	params.Set("include_capi", "false")
-	// Use a long lookback so we catch all alerts that still have active decisions.
-	params.Set("since", "8760h") // 1 year
+	params.Set("since", "8760h") // 1 year — wide enough to catch all active decisions
 	if ip != "" {
 		params.Set("ip", ip)
 	}
@@ -245,16 +245,26 @@ func (c *Client) FetchDecisions(ip string) ([]json.RawMessage, error) {
 		return nil, fmt.Errorf("fetch decisions: decode alerts: %w", err)
 	}
 
-	// Collect decisions, deduplicating by ID.
+	now := time.Now().UTC()
+
+	// Collect only active decisions, deduplicating by ID.
 	seen := make(map[int64]struct{})
 	var decisions []json.RawMessage
 	for _, alert := range alerts {
 		for _, raw := range alert.Decisions {
 			var d struct {
-				ID int64 `json:"id"`
+				ID    int64  `json:"id"`
+				Until string `json:"until"`
 			}
 			if err := json.Unmarshal(raw, &d); err != nil || d.ID == 0 {
 				continue
+			}
+			// Filter out expired decisions.
+			if d.Until != "" {
+				until, err := time.Parse(time.RFC3339, d.Until)
+				if err == nil && until.Before(now) {
+					continue
+				}
 			}
 			if _, ok := seen[d.ID]; ok {
 				continue
