@@ -54,12 +54,18 @@ func main() {
 		}
 	}
 
+	bouncerKey := os.Getenv("LAPI_BOUNCER_KEY")
+
 	alertsSince = os.Getenv("ALERTS_SINCE")
 	if alertsSince == "" {
 		alertsSince = "168h"
 	}
 
-	client = lapi.NewClient(lapiURL, lapiUsername, lapiPassword, skipTLSVerify)
+	client = lapi.NewClient(lapiURL, lapiUsername, lapiPassword, bouncerKey, skipTLSVerify)
+
+	if bouncerKey == "" {
+		log.Println("Warning: LAPI_BOUNCER_KEY not set — decisions endpoint may return 403. Create a bouncer key with: cscli bouncers add crowdsec-lite-ui")
+	}
 
 	mux := http.NewServeMux()
 

@@ -7,8 +7,9 @@ services:
       - "3000:3000"
     environment:
       LAPI_URL: http://crowdsec:8080
-      LAPI_USERNAME: crowdsec-web-ui
+      LAPI_USERNAME: crowdsec-lite-ui
       LAPI_PASSWORD: your-password-here
+      LAPI_BOUNCER_KEY: your-bouncer-key-here
     networks:
       - crowdsec-net
 
