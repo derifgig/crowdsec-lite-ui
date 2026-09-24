@@ -69,7 +69,6 @@ func main() {
 	mux.HandleFunc("GET /api/decisions", handleGetDecisions)
 	mux.HandleFunc("POST /api/decisions", handleAddDecision)
 	mux.HandleFunc("DELETE /api/decisions/{id}", handleDeleteDecision)
-	mux.HandleFunc("GET /api/debug/decision-sample", handleDebugDecisionSample)
 
 	distFS, err := fs.Sub(webui.FS, "dist")
 	if err != nil {
@@ -296,18 +295,6 @@ func handleAddDecision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
-}
-
-func handleDebugDecisionSample(w http.ResponseWriter, r *http.Request) {
-	// Returns first 3 raw decisions from alerts for structure inspection.
-	decisions, err := client.FetchDecisionsSample()
-	if err != nil {
-		writeError(w, http.StatusBadGateway, err.Error())
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(decisions)
 }
 
 func handleDeleteDecision(w http.ResponseWriter, r *http.Request) {
