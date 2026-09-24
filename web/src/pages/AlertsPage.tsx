@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getAlerts, type Alert } from '../api/client'
 import BanModal from '../components/BanModal'
 import Pagination from '../components/Pagination'
+import RefreshBar from '../components/RefreshBar'
+import { useAutoRefresh } from '../hooks/useAutoRefresh'
 
 const SINCE_OPTIONS = [
   { label: '1h', value: '1h' },
@@ -78,6 +80,10 @@ export default function AlertsPage() {
       if (id === fetchIdRef.current) setLoading(false)
     }
   }, [pageSize])
+
+  const { intervalSec, changeInterval, refresh, lastRefreshed } = useAutoRefresh(
+    useCallback(() => fetchAlerts(page, since, appliedIp, appliedScenario), [fetchAlerts, page, since, appliedIp, appliedScenario])
+  )
 
   useEffect(() => {
     fetchAlerts(page, since, appliedIp, appliedScenario)
@@ -188,6 +194,14 @@ export default function AlertsPage() {
           >
             Search
           </button>
+
+          <RefreshBar
+            intervalSec={intervalSec}
+            onChangeInterval={changeInterval}
+            onRefresh={refresh}
+            lastRefreshed={lastRefreshed}
+            loading={loading}
+          />
         </div>
 
         {/* Stats */}

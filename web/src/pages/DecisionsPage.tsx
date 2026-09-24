@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { deleteDecision, getDecisions, type Decision } from '../api/client'
 import BanModal from '../components/BanModal'
 import Pagination from '../components/Pagination'
+import RefreshBar from '../components/RefreshBar'
+import { useAutoRefresh } from '../hooks/useAutoRefresh'
 
 function formatDate(iso: string): string {
   if (!iso) return '—'
@@ -64,6 +66,10 @@ export default function DecisionsPage() {
       if (id === fetchIdRef.current) setLoading(false)
     }
   }, [pageSize])
+
+  const { intervalSec, changeInterval, refresh, lastRefreshed } = useAutoRefresh(
+    useCallback(() => fetchDecisions(page, appliedIp), [fetchDecisions, page, appliedIp])
+  )
 
   useEffect(() => {
     fetchDecisions(page, appliedIp)
@@ -155,6 +161,14 @@ export default function DecisionsPage() {
           <button onClick={applySearch} style={btnSecondaryStyle}>
             Search
           </button>
+
+          <RefreshBar
+            intervalSec={intervalSec}
+            onChangeInterval={changeInterval}
+            onRefresh={refresh}
+            lastRefreshed={lastRefreshed}
+            loading={loading}
+          />
 
           <button onClick={() => setBanModalOpen(true)} style={btnPrimaryStyle}>
             + Ban IP
