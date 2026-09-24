@@ -35,6 +35,26 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build frontend
+        working-directory: web
+        run: npm ci && npm run build
+
+      - name: Copy dist for embed
+        run: cp -r web/dist/* webui/dist/
+
+      - name: Build Go binary
+        run: CGO_ENABLED=0 GOOS=linux go build -v -o /dev/null ./cmd/server
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
