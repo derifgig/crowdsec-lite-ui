@@ -211,19 +211,25 @@ func (c *Client) FetchAlertByID(id string) (json.RawMessage, error) {
 	return json.RawMessage(data), nil
 }
 
-// FetchDecisions retrieves decisions from the LAPI.
-// Uses bouncer key (X-Api-Key) if available, otherwise falls back to watcher JWT.
+// alertForDecisions is used only to extract the embedded decisions slice.
+type alertForDecisions struct {
+	Decisions []json.RawMessage `json:"decisions"`
+}
+
+// FetchDecisions extracts decisions embedded in alerts via the watcher JWT endpoint.
+// GET /v1/decisions requires a bouncer X-Api-Key which we don't have;
+// decisions are available inside every alert object returned by GET /v1/alerts.
 func (c *Client) FetchDecisions(ip string) ([]json.RawMessage, error) {
 	params := url.Values{}
 	params.Set("limit", "0")
+	params.Set("include_capi", "false")
+	// Use a long lookback so we catch all alerts that still have active decisions.
+	params.Set("since", "8760h") // 1 year
 	if ip != "" {
 		params.Set("ip", ip)
 	}
 
-	path := "/v1/decisions?" + params.Encode()
-
-	// GET /v1/decisions is a watcher endpoint — use JWT auth.
-	data, status, err := c.doRequest(http.MethodGet, path, nil)
+	data, status, err := c.doRequest(http.MethodGet, "/v1/alerts?"+params.Encode(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -234,10 +240,30 @@ func (c *Client) FetchDecisions(ip string) ([]json.RawMessage, error) {
 		return nil, fmt.Errorf("fetch decisions: unexpected status %d", status)
 	}
 
-	var decisions []json.RawMessage
-	if err := json.Unmarshal(data, &decisions); err != nil {
-		return nil, fmt.Errorf("fetch decisions: decode response: %w", err)
+	var alerts []alertForDecisions
+	if err := json.Unmarshal(data, &alerts); err != nil {
+		return nil, fmt.Errorf("fetch decisions: decode alerts: %w", err)
 	}
+
+	// Collect decisions, deduplicating by ID.
+	seen := make(map[int64]struct{})
+	var decisions []json.RawMessage
+	for _, alert := range alerts {
+		for _, raw := range alert.Decisions {
+			var d struct {
+				ID int64 `json:"id"`
+			}
+			if err := json.Unmarshal(raw, &d); err != nil || d.ID == 0 {
+				continue
+			}
+			if _, ok := seen[d.ID]; ok {
+				continue
+			}
+			seen[d.ID] = struct{}{}
+			decisions = append(decisions, raw)
+		}
+	}
+
 	if decisions == nil {
 		return []json.RawMessage{}, nil
 	}
