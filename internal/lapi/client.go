@@ -17,7 +17,6 @@ type Client struct {
 	baseURL       string
 	username      string
 	password      string
-	bouncerKey    string // optional: X-Api-Key for bouncer-only endpoints
 	token         string
 	httpClient    *http.Client
 	mu            sync.Mutex
@@ -25,7 +24,7 @@ type Client struct {
 }
 
 // NewClient creates a new LAPI client.
-func NewClient(baseURL, username, password, bouncerKey string, skipTLSVerify bool) *Client {
+func NewClient(baseURL, username, password string, skipTLSVerify bool) *Client {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: skipTLSVerify,
@@ -35,7 +34,6 @@ func NewClient(baseURL, username, password, bouncerKey string, skipTLSVerify boo
 		baseURL:       baseURL,
 		username:      username,
 		password:      password,
-		bouncerKey:    bouncerKey,
 		skipTLSVerify: skipTLSVerify,
 		httpClient: &http.Client{
 			Timeout:   30 * time.Second,
@@ -213,44 +211,6 @@ func (c *Client) FetchAlertByID(id string) (json.RawMessage, error) {
 	return json.RawMessage(data), nil
 }
 
-// doBouncerRequest performs a request using X-Api-Key auth (bouncer endpoints).
-func (c *Client) doBouncerRequest(method, path string, body io.Reader) ([]byte, int, error) {
-	var bodyBytes []byte
-	if body != nil {
-		var err error
-		bodyBytes, err = io.ReadAll(body)
-		if err != nil {
-			return nil, 0, fmt.Errorf("read request body: %w", err)
-		}
-	}
-
-	var reqBody io.Reader
-	if bodyBytes != nil {
-		reqBody = bytes.NewReader(bodyBytes)
-	}
-
-	req, err := http.NewRequest(method, c.baseURL+path, reqBody)
-	if err != nil {
-		return nil, 0, fmt.Errorf("create request: %w", err)
-	}
-	req.Header.Set("X-Api-Key", c.bouncerKey)
-	if bodyBytes != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, 0, fmt.Errorf("do request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("read response: %w", err)
-	}
-	return data, resp.StatusCode, nil
-}
-
 // FetchDecisions retrieves decisions from the LAPI.
 // Uses bouncer key (X-Api-Key) if available, otherwise falls back to watcher JWT.
 func (c *Client) FetchDecisions(ip string) ([]json.RawMessage, error) {
@@ -262,14 +222,8 @@ func (c *Client) FetchDecisions(ip string) ([]json.RawMessage, error) {
 
 	path := "/v1/decisions?" + params.Encode()
 
-	var data []byte
-	var status int
-	var err error
-	if c.bouncerKey != "" {
-		data, status, err = c.doBouncerRequest(http.MethodGet, path, nil)
-	} else {
-		data, status, err = c.doRequest(http.MethodGet, path, nil)
-	}
+	// GET /v1/decisions is a watcher endpoint — use JWT auth.
+	data, status, err := c.doRequest(http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}

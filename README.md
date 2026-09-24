@@ -43,22 +43,16 @@ All config via environment variables:
 | `LAPI_URL` | ✅ | — | CrowdSec LAPI base URL |
 | `LAPI_USERNAME` | ✅ | — | Watcher machine login |
 | `LAPI_PASSWORD` | ✅ | — | Watcher machine password |
-| `LAPI_BOUNCER_KEY` | ✅ | — | Bouncer API key for reading decisions |
 | `LISTEN_ADDR` | | `:3000` | Listen address |
 | `LAPI_SKIP_TLS_VERIFY` | | `false` | Skip TLS cert verification |
 | `ALERTS_SINCE` | | `168h` | Default alerts lookback period |
 
 ## CrowdSec setup
 
-Register a watcher machine and a bouncer for the UI:
+Register a watcher machine for the UI:
 
 ```bash
-# Watcher — for alerts, ban, unban
 cscli machines add crowdsec-lite-ui --password your-password-here
-
-# Bouncer — for reading active decisions
-cscli bouncers add crowdsec-lite-ui
-# Copy the generated key → LAPI_BOUNCER_KEY
 ```
 
 ## Development
