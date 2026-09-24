@@ -1,59 +1,99 @@
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom'
+import { ThemeProvider, useTheme } from './theme'
 import StatusBar from './components/StatusBar'
 import AlertsPage from './pages/AlertsPage'
 import DecisionsPage from './pages/DecisionsPage'
 
+function ThemeToggle() {
+  const { theme, toggle } = useTheme()
+  return (
+    <button
+      onClick={toggle}
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+      style={{
+        background: 'var(--btn-secondary)',
+        border: '1px solid var(--border)',
+        color: 'var(--text-base)',
+        borderRadius: '6px',
+        padding: '4px 10px',
+        fontSize: '13px',
+        cursor: 'pointer',
+        lineHeight: 1.4,
+        transition: 'background 0.15s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--btn-secondary-hover)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'var(--btn-secondary)')}
+    >
+      {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
+    </button>
+  )
+}
+
+function Shell() {
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--text-base)', display: 'flex', flexDirection: 'column' }}>
+      <header style={{
+        background: 'var(--nav-bg)',
+        borderBottom: '1px solid var(--nav-border)',
+        padding: '0 16px',
+        height: '48px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '24px',
+        flexShrink: 0,
+      }}>
+        <span style={{ fontWeight: 600, fontSize: '14px', letterSpacing: '-0.01em', color: 'var(--text-base)' }}>
+          🛡 CrowdSec Lite
+        </span>
+
+        <nav style={{ display: 'flex', alignItems: 'center', height: '100%', gap: '2px' }}>
+          {[
+            { to: '/', label: 'Decisions', end: true },
+            { to: '/alerts', label: 'Alerts', end: false },
+          ].map(({ to, label, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                height: '100%',
+                padding: '0 12px',
+                fontSize: '14px',
+                borderBottom: isActive ? `2px solid var(--nav-active)` : '2px solid transparent',
+                color: isActive ? 'var(--text-base)' : 'var(--nav-inactive)',
+                textDecoration: 'none',
+                transition: 'color 0.15s',
+              })}
+            >
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <ThemeToggle />
+          <StatusBar />
+        </div>
+      </header>
+
+      <main style={{ flex: 1, overflow: 'auto' }}>
+        <Routes>
+          <Route path="/" element={<DecisionsPage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
+        </Routes>
+      </main>
+    </div>
+  )
+}
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
-        {/* Nav */}
-        <header className="bg-slate-800 border-b border-slate-700 px-4 py-0 flex items-center h-12 gap-6 shrink-0">
-          <span className="text-white font-semibold tracking-tight text-sm">
-            🛡 CrowdSec Lite
-          </span>
-
-          <nav className="flex items-center gap-1 h-full">
-            <NavLink
-              to="/"
-              end
-              className={({ isActive }) =>
-                `flex items-center h-full px-3 text-sm border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-indigo-400 text-white'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`
-              }
-            >
-              Alerts
-            </NavLink>
-            <NavLink
-              to="/decisions"
-              className={({ isActive }) =>
-                `flex items-center h-full px-3 text-sm border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-indigo-400 text-white'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`
-              }
-            >
-              Decisions
-            </NavLink>
-          </nav>
-
-          <div className="ml-auto">
-            <StatusBar />
-          </div>
-        </header>
-
-        {/* Main content */}
-        <main className="flex-1 overflow-auto">
-          <Routes>
-            <Route path="/" element={<AlertsPage />} />
-            <Route path="/decisions" element={<DecisionsPage />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Shell />
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }

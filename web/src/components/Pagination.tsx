@@ -7,59 +7,41 @@ interface Props {
 export default function Pagination({ page, totalPages, onChange }: Props) {
   if (totalPages <= 1) return null
 
-  function getPages(): (number | '…')[] {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1)
+  function btnStyle(active: boolean, disabled: boolean): React.CSSProperties {
+    return {
+      padding: '4px 10px',
+      borderRadius: '5px',
+      fontSize: '13px',
+      border: '1px solid var(--border)',
+      background: active ? 'var(--accent)' : 'var(--bg-surface)',
+      color: active ? '#fff' : disabled ? 'var(--text-dim)' : 'var(--text-base)',
+      cursor: disabled ? 'default' : 'pointer',
+      opacity: disabled ? 0.4 : 1,
+      minWidth: '32px',
+      textAlign: 'center' as const,
     }
-    const pages: (number | '…')[] = []
-    const left = Math.max(2, page - 2)
-    const right = Math.min(totalPages - 1, page + 2)
-
-    pages.push(1)
-    if (left > 2) pages.push('…')
-    for (let i = left; i <= right; i++) pages.push(i)
-    if (right < totalPages - 1) pages.push('…')
-    pages.push(totalPages)
-    return pages
   }
 
-  const pages = getPages()
+  const pages: (number | '…')[] = []
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    if (page > 3) pages.push('…')
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i)
+    if (page < totalPages - 2) pages.push('…')
+    pages.push(totalPages)
+  }
 
   return (
-    <div className="flex items-center gap-1">
-      <button
-        onClick={() => onChange(page - 1)}
-        disabled={page <= 1}
-        className="px-3 py-1.5 rounded text-sm bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 transition-colors"
-      >
-        ← Prev
-      </button>
-
+    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+      <button style={btnStyle(false, page === 1)} disabled={page === 1} onClick={() => onChange(page - 1)}>‹</button>
       {pages.map((p, i) =>
-        p === '…' ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-slate-500 select-none">…</span>
-        ) : (
-          <button
-            key={p}
-            onClick={() => onChange(p as number)}
-            className={`min-w-[2rem] px-2 py-1.5 rounded text-sm transition-colors ${
-              p === page
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-            }`}
-          >
-            {p}
-          </button>
-        )
+        p === '…'
+          ? <span key={`e${i}`} style={{ padding: '4px 6px', color: 'var(--text-dim)', fontSize: '13px' }}>…</span>
+          : <button key={p} style={btnStyle(p === page, false)} onClick={() => onChange(p as number)}>{p}</button>
       )}
-
-      <button
-        onClick={() => onChange(page + 1)}
-        disabled={page >= totalPages}
-        className="px-3 py-1.5 rounded text-sm bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 transition-colors"
-      >
-        Next →
-      </button>
+      <button style={btnStyle(false, page === totalPages)} disabled={page === totalPages} onClick={() => onChange(page + 1)}>›</button>
     </div>
   )
 }

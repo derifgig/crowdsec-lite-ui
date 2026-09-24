@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { addDecision } from '../api/client'
+
+const DURATION_OPTIONS = ['1h', '4h', '24h', '72h', '168h', 'custom']
 
 interface Props {
   open: boolean
@@ -8,177 +10,135 @@ interface Props {
   onSuccess: () => void
 }
 
-const PRESET_DURATIONS = ['1h', '4h', '24h', '72h', '168h']
-
-function isValidIp(value: string): boolean {
-  // IPv4
-  const v4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(value)
-  if (v4) {
-    const parts = value.split('.').map(Number)
-    return parts.every(p => p >= 0 && p <= 255)
-  }
-  // IPv6 — basic check: contains colons
-  return value.includes(':') && value.length >= 2
+function isValidIp(ip: string): boolean {
+  const v4 = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$/
+  const v6 = /^[0-9a-fA-F:]+$/
+  return v4.test(ip.trim()) || v6.test(ip.trim())
 }
 
 export default function BanModal({ open, initialIp = '', onClose, onSuccess }: Props) {
   const [ip, setIp] = useState(initialIp)
-  const [durationPreset, setDurationPreset] = useState('24h')
-  const [durationCustom, setDurationCustom] = useState('')
-  const [useCustom, setUseCustom] = useState(false)
+  const [durOption, setDurOption] = useState('4h')
+  const [durCustom, setDurCustom] = useState('')
   const [reason, setReason] = useState('manual ban')
   const [type, setType] = useState<'ban' | 'captcha'>('ban')
-  const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const ipRef = useRef<HTMLInputElement>(null)
 
-  // Sync ip when initialIp changes while modal is open
   useEffect(() => {
     if (open) {
       setIp(initialIp)
+      setDurOption('4h')
+      setDurCustom('')
+      setReason('manual ban')
+      setType('ban')
       setError(null)
-      setSubmitting(false)
+      setTimeout(() => ipRef.current?.focus(), 50)
     }
   }, [open, initialIp])
 
   if (!open) return null
 
-  const duration = useCustom ? durationCustom.trim() : durationPreset
+  const duration = durOption === 'custom' ? durCustom : durOption
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!isValidIp(ip)) { setError('Invalid IP address'); return }
+    if (!duration) { setError('Duration is required'); return }
+    setLoading(true)
     setError(null)
-
-    if (!ip.trim()) {
-      setError('IP address is required.')
-      return
-    }
-    if (!isValidIp(ip.trim())) {
-      setError('Invalid IP address.')
-      return
-    }
-    if (!duration) {
-      setError('Duration is required.')
-      return
-    }
-
-    setSubmitting(true)
     try {
-      await addDecision({ ip: ip.trim(), duration, reason: reason.trim() || 'manual ban', type })
+      await addDecision({ ip: ip.trim(), duration, reason, type })
       onSuccess()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add decision.')
+      setError(err instanceof Error ? err.message : 'Failed to ban IP')
     } finally {
-      setSubmitting(false)
+      setLoading(false)
     }
   }
 
+  const s = {
+    overlay: {
+      position: 'fixed' as const, inset: 0, background: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
+    } as React.CSSProperties,
+    card: {
+      background: 'var(--bg-surface)', border: '1px solid var(--border)',
+      borderRadius: '10px', padding: '24px', width: '100%', maxWidth: '420px',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+    } as React.CSSProperties,
+    label: { display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' } as React.CSSProperties,
+    input: {
+      width: '100%', background: 'var(--input-bg)', border: '1px solid var(--input-border)',
+      borderRadius: '6px', padding: '7px 10px', fontSize: '13px', color: 'var(--text-base)',
+      outline: 'none',
+    } as React.CSSProperties,
+    select: {
+      width: '100%', background: 'var(--input-bg)', border: '1px solid var(--input-border)',
+      borderRadius: '6px', padding: '7px 10px', fontSize: '13px', color: 'var(--text-base)',
+      outline: 'none',
+    } as React.CSSProperties,
+    btnPrimary: {
+      background: 'var(--btn-primary)', color: '#fff', border: 'none',
+      borderRadius: '6px', padding: '8px 18px', fontSize: '13px',
+      cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1,
+    } as React.CSSProperties,
+    btnSecondary: {
+      background: 'var(--btn-secondary)', color: 'var(--text-base)',
+      border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 18px',
+      fontSize: '13px', cursor: 'pointer',
+    } as React.CSSProperties,
+  }
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-          <h2 className="text-white font-semibold text-base">Add Decision / Ban IP</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors text-lg leading-none"
-            aria-label="Close"
-          >
-            ✕
-          </button>
+    <div style={s.overlay} onClick={onClose}>
+      <div style={s.card} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-base)', margin: 0 }}>Ban IP</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', lineHeight: 1 }}>✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
-          {/* IP Address */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label className="block text-sm text-slate-300 mb-1">IP Address</label>
-            <input
-              type="text"
-              value={ip}
-              onChange={e => setIp(e.target.value)}
-              placeholder="e.g. 1.2.3.4"
-              className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-            />
+            <label style={s.label}>IP Address</label>
+            <input ref={ipRef} style={s.input} value={ip} onChange={e => setIp(e.target.value)} placeholder="1.2.3.4" />
           </div>
 
-          {/* Duration */}
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Duration</label>
-            <div className="flex gap-2">
-              <select
-                value={useCustom ? 'custom' : durationPreset}
-                onChange={e => {
-                  if (e.target.value === 'custom') {
-                    setUseCustom(true)
-                  } else {
-                    setUseCustom(false)
-                    setDurationPreset(e.target.value)
-                  }
-                }}
-                className="bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
-              >
-                {PRESET_DURATIONS.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-                <option value="custom">Custom…</option>
-              </select>
-              {useCustom && (
-                <input
-                  type="text"
-                  value={durationCustom}
-                  onChange={e => setDurationCustom(e.target.value)}
-                  placeholder="e.g. 7d"
-                  className="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              )}
-            </div>
+            <label style={s.label}>Duration</label>
+            <select style={s.select} value={durOption} onChange={e => setDurOption(e.target.value)}>
+              {DURATION_OPTIONS.map(o => <option key={o} value={o}>{o === 'custom' ? 'Custom…' : o}</option>)}
+            </select>
+            {durOption === 'custom' && (
+              <input style={{ ...s.input, marginTop: '6px' }} value={durCustom} onChange={e => setDurCustom(e.target.value)} placeholder="e.g. 12h, 7d" />
+            )}
           </div>
 
-          {/* Reason */}
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Reason</label>
-            <input
-              type="text"
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              placeholder="manual ban"
-              className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-            />
+            <label style={s.label}>Reason</label>
+            <input style={s.input} value={reason} onChange={e => setReason(e.target.value)} placeholder="manual ban" />
           </div>
 
-          {/* Type */}
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Type</label>
-            <select
-              value={type}
-              onChange={e => setType(e.target.value as 'ban' | 'captcha')}
-              className="bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
-            >
+            <label style={s.label}>Type</label>
+            <select style={s.select} value={type} onChange={e => setType(e.target.value as 'ban' | 'captcha')}>
               <option value="ban">ban</option>
               <option value="captcha">captcha</option>
             </select>
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm">{error}</p>
+            <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger)', borderRadius: '6px', padding: '8px 12px', fontSize: '13px', color: 'var(--danger)' }}>
+              {error}
+            </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded text-sm bg-slate-600 hover:bg-slate-500 text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-            >
-              {submitting ? 'Adding…' : 'Add Decision'}
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <button type="button" style={s.btnSecondary} onClick={onClose}>Cancel</button>
+            <button type="submit" style={s.btnPrimary} disabled={loading}>
+              {loading ? 'Banning…' : 'Ban'}
             </button>
           </div>
         </form>

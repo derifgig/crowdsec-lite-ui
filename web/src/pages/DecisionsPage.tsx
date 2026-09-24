@@ -15,10 +15,15 @@ function formatDate(iso: string): string {
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-slate-700">
+    <tr style={{ borderBottom: '1px solid var(--border)' }}>
       {Array.from({ length: 7 }).map((_, i) => (
-        <td key={i} className="px-3 py-3">
-          <div className="h-4 bg-slate-700 rounded animate-pulse" />
+        <td key={i} style={{ padding: '10px 12px' }}>
+          <div style={{
+            height: '14px',
+            background: 'var(--skeleton)',
+            borderRadius: '4px',
+            animation: 'skeleton-pulse 1.5s ease-in-out infinite',
+          }} />
         </td>
       ))}
     </tr>
@@ -92,141 +97,234 @@ export default function DecisionsPage() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
+  const inputStyle: React.CSSProperties = {
+    background: 'var(--input-bg)',
+    border: '1px solid var(--input-border)',
+    borderRadius: '6px',
+    padding: '6px 10px',
+    fontSize: '13px',
+    color: 'var(--text-base)',
+    outline: 'none',
+  }
+
+  const btnSecondaryStyle: React.CSSProperties = {
+    background: 'var(--btn-secondary)',
+    color: 'var(--text-base)',
+    border: '1px solid var(--border)',
+    borderRadius: '6px',
+    padding: '6px 14px',
+    fontSize: '13px',
+    cursor: 'pointer',
+  }
+
+  const btnPrimaryStyle: React.CSSProperties = {
+    background: 'var(--btn-primary)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '6px 14px',
+    fontSize: '13px',
+    cursor: 'pointer',
+  }
+
   return (
-    <div className="p-4 space-y-4">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-white font-semibold text-lg mr-auto">Decisions</h1>
+    <>
+      <style>{`
+        @keyframes skeleton-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
 
-        <input
-          type="text"
-          value={filterIp}
-          onChange={e => setFilterIp(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Filter by IP…"
-          className="bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-44"
-        />
+      <div style={{ background: 'var(--bg-base)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+          <h1 style={{ fontSize: '17px', fontWeight: 600, color: 'var(--text-base)', margin: 0, marginRight: 'auto' }}>
+            Decisions
+          </h1>
 
-        <button
-          onClick={applySearch}
-          className="px-4 py-1.5 rounded text-sm bg-slate-600 hover:bg-slate-500 text-white transition-colors"
-        >
-          Search
-        </button>
+          <input
+            type="text"
+            value={filterIp}
+            onChange={e => setFilterIp(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Filter by IP…"
+            style={{ ...inputStyle, width: '176px' }}
+          />
 
-        <button
-          onClick={() => setBanModalOpen(true)}
-          className="px-4 py-1.5 rounded text-sm bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
-        >
-          + Ban IP
-        </button>
-      </div>
+          <button onClick={applySearch} style={btnSecondaryStyle}>
+            Search
+          </button>
 
-      {/* Stats */}
-      <p className="text-slate-400 text-sm">
-        {loading ? 'Loading…' : `${total.toLocaleString()} decision${total !== 1 ? 's' : ''}`}
-      </p>
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-3 bg-red-900/30 border border-red-700 rounded px-4 py-3 text-red-300 text-sm">
-          <span>{error}</span>
-          <button
-            onClick={() => fetchDecisions(page, appliedIp)}
-            className="ml-auto px-3 py-1 rounded bg-red-800 hover:bg-red-700 text-white text-xs transition-colors"
-          >
-            Retry
+          <button onClick={() => setBanModalOpen(true)} style={btnPrimaryStyle}>
+            + Ban IP
           </button>
         </div>
-      )}
 
-      {/* Table */}
-      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead>
-            <tr className="border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wide">
-              <th className="px-3 py-2.5 font-medium">Scope / Value</th>
-              <th className="px-3 py-2.5 font-medium">Type</th>
-              <th className="px-3 py-2.5 font-medium">Duration</th>
-              <th className="px-3 py-2.5 font-medium">Scenario / Reason</th>
-              <th className="px-3 py-2.5 font-medium">Origin</th>
-              <th className="px-3 py-2.5 font-medium">Simulated</th>
-              <th className="px-3 py-2.5 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && decisions.length === 0 && (
-              Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
-            )}
-            {!loading && !error && decisions.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-slate-500">No decisions found.</td>
-              </tr>
-            )}
-            {decisions.map(decision => (
-              <tr
-                key={decision.id}
-                className="border-b border-slate-700 hover:bg-slate-700/50 transition-colors"
-              >
-                <td className="px-3 py-2.5">
-                  <div className="text-slate-100 font-mono text-xs">{decision.value}</div>
-                  {decision.scope && (
-                    <div className="text-slate-500 text-xs">{decision.scope}</div>
-                  )}
-                </td>
-                <td className="px-3 py-2.5">
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs border ${
-                    decision.type === 'ban'
-                      ? 'bg-red-900/40 text-red-300 border-red-800'
-                      : 'bg-yellow-900/40 text-yellow-300 border-yellow-800'
-                  }`}>
-                    {decision.type}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-slate-300 whitespace-nowrap">
-                  {decision.duration}
-                </td>
-                <td className="px-3 py-2.5 text-slate-300 max-w-[16rem] truncate">
-                  {decision.scenario || '—'}
-                </td>
-                <td className="px-3 py-2.5 text-slate-400 text-xs">
-                  {decision.origin || '—'}
-                </td>
-                <td className="px-3 py-2.5 text-slate-400 text-xs">
-                  {decision.simulated ? 'Yes' : 'No'}
-                </td>
-                <td className="px-3 py-2.5">
-                  <div className="flex flex-col gap-1">
-                    <button
-                      onClick={() => handleUnban(decision.id)}
-                      disabled={unbanning.has(decision.id)}
-                      className="px-2.5 py-1 rounded text-xs bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors whitespace-nowrap"
-                    >
-                      {unbanning.has(decision.id) ? 'Removing…' : 'Unban'}
-                    </button>
-                    {unbanErrors[decision.id] && (
-                      <span className="text-red-400 text-xs">{unbanErrors[decision.id]}</span>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        {/* Stats */}
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+          {loading ? 'Loading…' : `${total.toLocaleString()} decision${total !== 1 ? 's' : ''}`}
+        </p>
 
-      {/* Pagination */}
-      {!loading && !error && (
-        <div className="flex justify-end">
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        {/* Error */}
+        {error && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '12px',
+            background: 'var(--danger-bg)', border: '1px solid var(--danger)',
+            borderRadius: '6px', padding: '10px 14px',
+            fontSize: '13px', color: 'var(--danger)',
+          }}>
+            <span>{error}</span>
+            <button
+              onClick={() => fetchDecisions(page, appliedIp)}
+              style={{
+                marginLeft: 'auto', background: 'var(--btn-danger)', color: '#fff',
+                border: 'none', borderRadius: '5px', padding: '4px 10px',
+                fontSize: '12px', cursor: 'pointer',
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Table */}
+        <div style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          borderRadius: '8px',
+          overflowX: 'auto',
+        }}>
+          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                {['Scope / Value', 'Type', 'Duration', 'Scenario / Reason', 'Origin', 'Simulated', 'Actions'].map(h => (
+                  <th key={h} style={{
+                    padding: '8px 12px', fontWeight: 500,
+                    color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading && decisions.length === 0 && (
+                Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
+              )}
+              {!loading && !error && decisions.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ padding: '28px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    No decisions found.
+                  </td>
+                </tr>
+              )}
+              {decisions.map(decision => (
+                <DecisionRow
+                  key={decision.id}
+                  decision={decision}
+                  unbanning={unbanning.has(decision.id)}
+                  unbanError={unbanErrors[decision.id]}
+                  onUnban={() => handleUnban(decision.id)}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
 
-      <BanModal
-        open={banModalOpen}
-        onClose={() => setBanModalOpen(false)}
-        onSuccess={() => fetchDecisions(page, appliedIp)}
-      />
-    </div>
+        {/* Pagination */}
+        {!loading && !error && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          </div>
+        )}
+
+        <BanModal
+          open={banModalOpen}
+          onClose={() => setBanModalOpen(false)}
+          onSuccess={() => fetchDecisions(page, appliedIp)}
+        />
+      </div>
+    </>
+  )
+}
+
+interface DecisionRowProps {
+  decision: Decision
+  unbanning: boolean
+  unbanError?: string
+  onUnban: () => void
+}
+
+function DecisionRow({ decision, unbanning, unbanError, onUnban }: DecisionRowProps) {
+  const [hovered, setHovered] = useState(false)
+
+  const isBan = decision.type === 'ban'
+  const badgeStyle: React.CSSProperties = {
+    display: 'inline-block',
+    padding: '2px 7px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    background: isBan ? 'var(--badge-ban-bg)' : 'var(--badge-captcha-bg)',
+    color: isBan ? 'var(--badge-ban-text)' : 'var(--badge-captcha-text)',
+    border: `1px solid ${isBan ? 'var(--badge-ban-border)' : 'var(--badge-captcha-border)'}`,
+  }
+
+  return (
+    <tr
+      style={{
+        borderBottom: '1px solid var(--border)',
+        background: hovered ? 'var(--row-hover)' : 'transparent',
+        transition: 'background 0.1s',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <td style={{ padding: '9px 12px' }}>
+        <div style={{ fontFamily: 'ui-monospace, monospace', fontSize: '12px', color: 'var(--text-base)' }}>
+          {decision.value}
+        </div>
+        {decision.scope && (
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{decision.scope}</div>
+        )}
+      </td>
+      <td style={{ padding: '9px 12px' }}>
+        <span style={badgeStyle}>{decision.type}</span>
+      </td>
+      <td style={{ padding: '9px 12px', color: 'var(--text-base)', whiteSpace: 'nowrap' }}>
+        {decision.duration}
+      </td>
+      <td style={{ padding: '9px 12px', color: 'var(--text-base)', maxWidth: '16rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {decision.scenario || '—'}
+      </td>
+      <td style={{ padding: '9px 12px', color: 'var(--text-muted)', fontSize: '12px' }}>
+        {decision.origin || '—'}
+      </td>
+      <td style={{ padding: '9px 12px', color: 'var(--text-muted)', fontSize: '12px' }}>
+        {decision.simulated ? 'Yes' : 'No'}
+      </td>
+      <td style={{ padding: '9px 12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <button
+            onClick={onUnban}
+            disabled={unbanning}
+            style={{
+              background: 'var(--btn-danger)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '5px',
+              padding: '4px 10px',
+              fontSize: '12px',
+              cursor: unbanning ? 'default' : 'pointer',
+              opacity: unbanning ? 0.5 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {unbanning ? 'Removing…' : 'Unban'}
+          </button>
+          {unbanError && (
+            <span style={{ fontSize: '11px', color: 'var(--danger)' }}>{unbanError}</span>
+          )}
+        </div>
+      </td>
+    </tr>
   )
 }

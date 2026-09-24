@@ -1,1 +1,89 @@
 @import "tailwindcss";
+
+/* ── Tokyo Night Dark ── */
+[data-theme="dark"] {
+  --bg-base:    #1a1b2e;
+  --bg-surface: #16213e;
+  --bg-raised:  #0f3460;
+  --bg-overlay: #1a1b2e;
+  --border:     #2d2f4e;
+  --text-base:  #c0caf5;
+  --text-muted: #565f89;
+  --text-dim:   #3b4261;
+  --accent:     #7aa2f7;
+  --accent-hover: #89b4fa;
+  --success:    #9ece6a;
+  --danger:     #f7768e;
+  --danger-bg:  rgba(247,118,142,0.15);
+  --warning:    #e0af68;
+  --badge-ban-bg:  rgba(247,118,142,0.15);
+  --badge-ban-text: #f7768e;
+  --badge-ban-border: #f7768e40;
+  --badge-captcha-bg: rgba(224,175,104,0.15);
+  --badge-captcha-text: #e0af68;
+  --badge-captcha-border: #e0af6840;
+  --skeleton:   #2d2f4e;
+  --row-hover:  rgba(122,162,247,0.06);
+  --row-selected: rgba(122,162,247,0.10);
+  --input-bg:   #16213e;
+  --input-border: #2d2f4e;
+  --input-focus: #7aa2f7;
+  --btn-primary: #7aa2f7;
+  --btn-primary-hover: #89b4fa;
+  --btn-secondary: #2d2f4e;
+  --btn-secondary-hover: #3b4261;
+  --btn-danger: #f7768e;
+  --btn-danger-hover: #ff8fa3;
+  --nav-bg:     #16213e;
+  --nav-border: #2d2f4e;
+  --nav-active: #7aa2f7;
+  --nav-inactive: #565f89;
+}
+
+/* ── Nord Light ── */
+[data-theme="light"] {
+  --bg-base:    #eceff4;
+  --bg-surface: #ffffff;
+  --bg-raised:  #e5e9f0;
+  --bg-overlay: #ffffff;
+  --border:     #d8dee9;
+  --text-base:  #2e3440;
+  --text-muted: #4c566a;
+  --text-dim:   #9099a8;
+  --accent:     #5e81ac;
+  --accent-hover: #4c6f9a;
+  --success:    #a3be8c;
+  --danger:     #bf616a;
+  --danger-bg:  rgba(191,97,106,0.10);
+  --warning:    #d08770;
+  --badge-ban-bg:  rgba(191,97,106,0.12);
+  --badge-ban-text: #bf616a;
+  --badge-ban-border: #bf616a40;
+  --badge-captcha-bg: rgba(208,135,112,0.12);
+  --badge-captcha-text: #d08770;
+  --badge-captcha-border: #d0877040;
+  --skeleton:   #e5e9f0;
+  --row-hover:  rgba(94,129,172,0.06);
+  --row-selected: rgba(94,129,172,0.10);
+  --input-bg:   #ffffff;
+  --input-border: #d8dee9;
+  --input-focus: #5e81ac;
+  --btn-primary: #5e81ac;
+  --btn-primary-hover: #4c6f9a;
+  --btn-secondary: #e5e9f0;
+  --btn-secondary-hover: #d8dee9;
+  --btn-danger: #bf616a;
+  --btn-danger-hover: #a8535b;
+  --nav-bg:     #ffffff;
+  --nav-border: #d8dee9;
+  --nav-active: #5e81ac;
+  --nav-inactive: #4c566a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg-base);
+  color: var(--text-base);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
