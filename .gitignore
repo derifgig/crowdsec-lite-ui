@@ -4,4 +4,4 @@ web/tsconfig.tsbuildinfo
 web/embed/
 webui/dist/*
 !webui/dist/.gitkeep
-server
+/server
