@@ -211,6 +211,40 @@ func (c *Client) FetchAlertByID(id string) (json.RawMessage, error) {
 	return json.RawMessage(data), nil
 }
 
+// FetchDecisionsSample returns raw JSON of first 3 decisions from alerts for debug.
+func (c *Client) FetchDecisionsSample() ([]byte, error) {
+	params := url.Values{}
+	params.Set("limit", "0")
+	params.Set("include_capi", "false")
+	params.Set("since", "8760h")
+
+	data, status, err := c.doRequest(http.MethodGet, "/v1/alerts?"+params.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("status %d", status)
+	}
+
+	var alerts []alertForDecisions
+	if err := json.Unmarshal(data, &alerts); err != nil {
+		return nil, err
+	}
+
+	var sample []json.RawMessage
+	for _, alert := range alerts {
+		for _, raw := range alert.Decisions {
+			sample = append(sample, raw)
+			if len(sample) >= 3 {
+				out, _ := json.MarshalIndent(sample, "", "  ")
+				return out, nil
+			}
+		}
+	}
+	out, _ := json.MarshalIndent(sample, "", "  ")
+	return out, nil
+}
+
 // alertForDecisions is used only to extract the embedded decisions slice.
 type alertForDecisions struct {
 	Decisions []json.RawMessage `json:"decisions"`
