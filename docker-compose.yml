@@ -1,0 +1,17 @@
+services:
+  crowdsec-lite-ui:
+    image: crowdsec-lite-ui:latest
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      LAPI_URL: http://crowdsec:8080
+      LAPI_USERNAME: crowdsec-web-ui
+      LAPI_PASSWORD: your-password-here
+    networks:
+      - crowdsec-net
+
+networks:
+  crowdsec-net:
+    external: true

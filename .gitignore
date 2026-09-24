@@ -1,0 +1,7 @@
+web/node_modules/
+web/dist/
+web/tsconfig.tsbuildinfo
+web/embed/
+webui/dist/*
+!webui/dist/.gitkeep
+server
