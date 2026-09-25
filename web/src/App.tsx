@@ -49,9 +49,9 @@ function Shell() {
 
         <nav style={{ display: 'flex', alignItems: 'center', height: '100%', gap: '2px' }}>
           {[
-            { to: '/', label: 'Decisions', end: true },
+            { to: '/', label: 'Info', end: true },
+            { to: '/decisions', label: 'Decisions', end: true },
             { to: '/alerts', label: 'Alerts', end: false },
-            { to: '/info', label: 'Info', end: true },
           ].map(({ to, label, end }) => (
             <NavLink
               key={to}
@@ -82,9 +82,9 @@ function Shell() {
 
       <main style={{ flex: 1, overflow: 'auto' }}>
         <Routes>
-          <Route path="/" element={<DecisionsPage />} />
+          <Route path="/" element={<InfoPage />} />
+          <Route path="/decisions" element={<DecisionsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
-          <Route path="/info" element={<InfoPage />} />
         </Routes>
       </main>
     </div>

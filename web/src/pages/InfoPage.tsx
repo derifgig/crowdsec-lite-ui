@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getInfo, type InfoResult } from '../api/client'
 import RefreshBar from '../components/RefreshBar'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
@@ -45,21 +46,37 @@ interface StatCardProps {
   value: number | string
   danger?: boolean
   text?: boolean
+  to?: string
 }
 
-function StatCard({ label, value, danger, text }: StatCardProps) {
+function StatCard({ label, value, danger, text, to }: StatCardProps) {
+  const navigate = useNavigate()
   const isRed = danger && typeof value === 'number' && value > 0
   const display = text ? value : typeof value === 'number' ? value.toLocaleString() : value
   const fontSize = text ? '18px' : '32px'
+  const clickable = Boolean(to)
   return (
-    <div style={{
-      background: 'var(--bg-surface)',
-      border: '1px solid var(--border)',
-      borderRadius: '8px',
-      padding: '20px 24px',
-    }}>
+    <div
+      onClick={to ? () => navigate(to) : undefined}
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+        borderRadius: '8px',
+        padding: '20px 24px',
+        cursor: clickable ? 'pointer' : 'default',
+        transition: clickable ? 'border-color 0.15s, background 0.15s' : undefined,
+      }}
+      onMouseEnter={clickable ? e => {
+        (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--accent)'
+        ;(e.currentTarget as HTMLDivElement).style.background = 'var(--row-hover)'
+      } : undefined}
+      onMouseLeave={clickable ? e => {
+        (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'
+        ;(e.currentTarget as HTMLDivElement).style.background = 'var(--bg-surface)'
+      } : undefined}
+    >
       <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-        {label}
+        {label}{clickable && <span style={{ marginLeft: '4px', opacity: 0.5 }}>→</span>}
       </div>
       <div style={{ fontSize, fontWeight: 700, color: isRed ? 'var(--danger)' : 'var(--text-base)', lineHeight: 1 }}>
         {display}
@@ -194,8 +211,8 @@ export default function InfoPage() {
             </>
           ) : (
             <>
-              <StatCard label="Total Alerts" value={info?.total_alerts ?? 0} />
-              <StatCard label="Active Decisions" value={info?.active_decisions ?? 0} danger />
+              <StatCard label="Total Alerts" value={info?.total_alerts ?? 0} to="/alerts" />
+              <StatCard label="Active Decisions" value={info?.active_decisions ?? 0} danger to="/decisions" />
               <StatCard label="UI Version" value={info?.ui_version ?? '—'} text />
               <StatCard label="UI Uptime" value={info?.ui_uptime ?? '—'} text />
             </>
