@@ -64,6 +64,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", handleHealth)
+	mux.HandleFunc("GET /api/info", handleGetInfo)
 	mux.HandleFunc("GET /api/alerts", handleGetAlerts)
 	mux.HandleFunc("GET /api/alerts/{id}", handleGetAlertByID)
 	mux.HandleFunc("GET /api/decisions", handleGetDecisions)
@@ -304,4 +305,13 @@ func handleDeleteDecision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func handleGetInfo(w http.ResponseWriter, r *http.Request) {
+	info, err := client.FetchInfo()
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, info)
 }

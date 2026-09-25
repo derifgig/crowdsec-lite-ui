@@ -369,3 +369,223 @@ func (c *Client) DeleteDecision(id string) error {
 	}
 	return nil
 }
+
+type ScenarioStat struct {
+	Scenario string `json:"scenario"`
+	Count    int    `json:"count"`
+}
+
+type CountryStat struct {
+	Country string `json:"country"`
+	Count   int    `json:"count"`
+}
+
+type IPStat struct {
+	IP    string `json:"ip"`
+	Count int    `json:"count"`
+}
+
+type AllowlistItem struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+	Size        int    `json:"size"`
+}
+
+type InfoResult struct {
+	TotalAlerts     int             `json:"total_alerts"`
+	ActiveDecisions int             `json:"active_decisions"`
+	TopScenarios    []ScenarioStat  `json:"top_scenarios"`
+	TopCountries    []CountryStat   `json:"top_countries"`
+	TopIPs          []IPStat        `json:"top_ips"`
+	Allowlists      []AllowlistItem `json:"allowlists"`
+}
+
+type alertForInfo struct {
+	Scenario string `json:"scenario"`
+	Source   struct {
+		CN    string `json:"cn"`
+		IP    string `json:"ip"`
+		Value string `json:"value"`
+	} `json:"source"`
+	Decisions []struct {
+		Duration string `json:"duration"`
+	} `json:"decisions"`
+}
+
+type allowlistRaw struct {
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	CreatedAt   string            `json:"created_at"`
+	UpdatedAt   string            `json:"updated_at"`
+	Items       []json.RawMessage `json:"items"`
+}
+
+// FetchInfo computes aggregate stats from alerts and fetches allowlists.
+func (c *Client) FetchInfo() (*InfoResult, error) {
+	// 1. Fetch all alerts (1 year window)
+	params := url.Values{}
+	params.Set("limit", "0")
+	params.Set("include_capi", "false")
+	params.Set("since", "8760h")
+
+	data, status, err := c.doRequest(http.MethodGet, "/v1/alerts?"+params.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("fetch info alerts: unexpected status %d", status)
+	}
+
+	var alerts []alertForInfo
+	if err := json.Unmarshal(data, &alerts); err != nil {
+		return nil, fmt.Errorf("fetch info: decode alerts: %w", err)
+	}
+
+	// 2. Compute stats
+	totalAlerts := len(alerts)
+	activeDecisions := 0
+	scenarioCounts := make(map[string]int)
+	countryCounts := make(map[string]int)
+	ipCounts := make(map[string]int)
+
+	for _, a := range alerts {
+		for _, d := range a.Decisions {
+			if !strings.HasPrefix(d.Duration, "-") {
+				activeDecisions++
+			}
+		}
+		if a.Scenario != "" {
+			scenarioCounts[a.Scenario]++
+		}
+		if a.Source.CN != "" {
+			countryCounts[a.Source.CN]++
+		}
+		ip := a.Source.IP
+		if ip == "" {
+			ip = a.Source.Value
+		}
+		if ip != "" {
+			ipCounts[ip]++
+		}
+	}
+
+	topScenarios := topNScenarios(scenarioCounts, 5)
+	topCountries := topNCountries(countryCounts, 5)
+	topIPs := topNIPs(ipCounts, 5)
+
+	// 3. Fetch allowlists
+	allowlists, err := c.fetchAllowlists()
+	if err != nil {
+		return nil, err
+	}
+
+	return &InfoResult{
+		TotalAlerts:     totalAlerts,
+		ActiveDecisions: activeDecisions,
+		TopScenarios:    topScenarios,
+		TopCountries:    topCountries,
+		TopIPs:          topIPs,
+		Allowlists:      allowlists,
+	}, nil
+}
+
+func (c *Client) fetchAllowlists() ([]AllowlistItem, error) {
+	data, status, err := c.doRequest(http.MethodGet, "/v1/allowlists", nil)
+	if err != nil {
+		return []AllowlistItem{}, nil
+	}
+	if status == http.StatusNotFound {
+		return []AllowlistItem{}, nil
+	}
+	if status != http.StatusOK {
+		return []AllowlistItem{}, nil
+	}
+
+	var raws []allowlistRaw
+	if err := json.Unmarshal(data, &raws); err != nil {
+		return []AllowlistItem{}, nil
+	}
+
+	result := make([]AllowlistItem, 0, len(raws))
+	for _, r := range raws {
+		result = append(result, AllowlistItem{
+			Name:        r.Name,
+			Description: r.Description,
+			CreatedAt:   r.CreatedAt,
+			UpdatedAt:   r.UpdatedAt,
+			Size:        len(r.Items),
+		})
+	}
+	return result, nil
+}
+
+func topNScenarios(counts map[string]int, n int) []ScenarioStat {
+	type kv struct {
+		k string
+		v int
+	}
+	list := make([]kv, 0, len(counts))
+	for k, v := range counts {
+		list = append(list, kv{k, v})
+	}
+	sortDesc(len(list), func(i, j int) bool { return list[i].v > list[j].v }, func(i, j int) { list[i], list[j] = list[j], list[i] })
+	if n > len(list) {
+		n = len(list)
+	}
+	result := make([]ScenarioStat, n)
+	for i := 0; i < n; i++ {
+		result[i] = ScenarioStat{Scenario: list[i].k, Count: list[i].v}
+	}
+	return result
+}
+
+func topNCountries(counts map[string]int, n int) []CountryStat {
+	type kv struct {
+		k string
+		v int
+	}
+	list := make([]kv, 0, len(counts))
+	for k, v := range counts {
+		list = append(list, kv{k, v})
+	}
+	sortDesc(len(list), func(i, j int) bool { return list[i].v > list[j].v }, func(i, j int) { list[i], list[j] = list[j], list[i] })
+	if n > len(list) {
+		n = len(list)
+	}
+	result := make([]CountryStat, n)
+	for i := 0; i < n; i++ {
+		result[i] = CountryStat{Country: list[i].k, Count: list[i].v}
+	}
+	return result
+}
+
+func topNIPs(counts map[string]int, n int) []IPStat {
+	type kv struct {
+		k string
+		v int
+	}
+	list := make([]kv, 0, len(counts))
+	for k, v := range counts {
+		list = append(list, kv{k, v})
+	}
+	sortDesc(len(list), func(i, j int) bool { return list[i].v > list[j].v }, func(i, j int) { list[i], list[j] = list[j], list[i] })
+	if n > len(list) {
+		n = len(list)
+	}
+	result := make([]IPStat, n)
+	for i := 0; i < n; i++ {
+		result[i] = IPStat{IP: list[i].k, Count: list[i].v}
+	}
+	return result
+}
+
+// sortDesc is a simple insertion sort helper (avoids importing sort for small slices).
+func sortDesc(n int, less func(i, j int) bool, swap func(i, j int)) {
+	for i := 1; i < n; i++ {
+		for j := i; j > 0 && less(j, j-1); j-- {
+			swap(j, j-1)
+		}
+	}
+}

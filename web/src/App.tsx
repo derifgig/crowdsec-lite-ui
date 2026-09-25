@@ -3,6 +3,7 @@ import { ThemeProvider, useTheme } from './theme'
 import StatusBar from './components/StatusBar'
 import AlertsPage from './pages/AlertsPage'
 import DecisionsPage from './pages/DecisionsPage'
+import InfoPage from './pages/InfoPage'
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme()
@@ -50,6 +51,7 @@ function Shell() {
           {[
             { to: '/', label: 'Decisions', end: true },
             { to: '/alerts', label: 'Alerts', end: false },
+            { to: '/info', label: 'Info', end: true },
           ].map(({ to, label, end }) => (
             <NavLink
               key={to}
@@ -82,6 +84,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<DecisionsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/info" element={<InfoPage />} />
         </Routes>
       </main>
     </div>

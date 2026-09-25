@@ -124,3 +124,27 @@ export function addDecision(req: BanRequest): Promise<void> {
 export function deleteDecision(id: number): Promise<void> {
   return apiFetch<void>(`/api/decisions/${id}`, { method: 'DELETE' })
 }
+
+export interface InfoResult {
+  total_alerts: number
+  active_decisions: number
+  top_scenarios: Array<{ scenario: string; count: number }>
+  top_countries: Array<{ country: string; count: number }>
+  top_ips: Array<{ ip: string; count: number }>
+  allowlists: Array<{
+    name: string
+    description: string
+    created_at: string
+    updated_at: string
+    size: number
+  }>
+}
+
+export async function getInfo(): Promise<InfoResult> {
+  const res = await fetch('/api/info')
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `HTTP ${res.status}`)
+  }
+  return res.json()
+}
