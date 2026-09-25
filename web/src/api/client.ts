@@ -138,6 +138,8 @@ export interface InfoResult {
     updated_at: string
     size: number
   }>
+  ui_version: string
+  ui_uptime: string
 }
 
 export async function getInfo(): Promise<InfoResult> {

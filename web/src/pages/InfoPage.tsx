@@ -42,12 +42,15 @@ function SkeletonTable() {
 
 interface StatCardProps {
   label: string
-  value: number
+  value: number | string
   danger?: boolean
+  text?: boolean
 }
 
-function StatCard({ label, value, danger }: StatCardProps) {
-  const isRed = danger && value > 0
+function StatCard({ label, value, danger, text }: StatCardProps) {
+  const isRed = danger && typeof value === 'number' && value > 0
+  const display = text ? value : typeof value === 'number' ? value.toLocaleString() : value
+  const fontSize = text ? '18px' : '32px'
   return (
     <div style={{
       background: 'var(--bg-surface)',
@@ -58,8 +61,8 @@ function StatCard({ label, value, danger }: StatCardProps) {
       <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
         {label}
       </div>
-      <div style={{ fontSize: '32px', fontWeight: 700, color: isRed ? 'var(--danger)' : 'var(--text-base)', lineHeight: 1 }}>
-        {value.toLocaleString()}
+      <div style={{ fontSize, fontWeight: 700, color: isRed ? 'var(--danger)' : 'var(--text-base)', lineHeight: 1 }}>
+        {display}
       </div>
     </div>
   )
@@ -193,6 +196,8 @@ export default function InfoPage() {
             <>
               <StatCard label="Total Alerts" value={info?.total_alerts ?? 0} />
               <StatCard label="Active Decisions" value={info?.active_decisions ?? 0} danger />
+              <StatCard label="UI Version" value={info?.ui_version ?? '—'} text />
+              <StatCard label="UI Uptime" value={info?.ui_uptime ?? '—'} text />
             </>
           )}
         </div>

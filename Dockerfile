@@ -13,7 +13,8 @@ COPY go.mod ./
 RUN go mod download
 COPY . .
 COPY --from=web-builder /app/web/dist ./webui/dist
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o server ./cmd/server
+ARG VERSION=dev
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.Version=${VERSION}" -o server ./cmd/server
 
 # Stage 3: Minimal runtime
 FROM gcr.io/distroless/static-debian12

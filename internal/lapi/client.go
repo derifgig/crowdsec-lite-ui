@@ -400,6 +400,8 @@ type InfoResult struct {
 	TopCountries    []CountryStat   `json:"top_countries"`
 	TopIPs          []IPStat        `json:"top_ips"`
 	Allowlists      []AllowlistItem `json:"allowlists"`
+	UIVersion       string          `json:"ui_version"`
+	UIUptime        string          `json:"ui_uptime"`
 }
 
 type alertForInfo struct {

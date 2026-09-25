@@ -22,7 +22,11 @@ import (
 var (
 	alertsSince string
 	client      *lapi.Client
+	startTime   = time.Now()
 )
+
+// Version is set at build time via -ldflags "-X main.Version=x.y.z"
+var Version = "dev"
 
 func main() {
 	lapiURL := os.Getenv("LAPI_URL")
@@ -313,5 +317,7 @@ func handleGetInfo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, err.Error())
 		return
 	}
+	info.UIVersion = Version
+	info.UIUptime = time.Since(startTime).Round(time.Second).String()
 	writeJSON(w, http.StatusOK, info)
 }
